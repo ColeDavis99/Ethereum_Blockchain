@@ -1,0 +1,18 @@
+{
+  "name": "server-tutorial",
+  "version": "1.0.0",
+  "description": "This is a test node.js server I made",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Cole Davis",
+  "license": "ISC",
+  "dependencies": {
+    "ajax": "0.0.4",
+    "ejs": "^3.0.1",
+    "express": "^4.17.1",
+    "web3": "^1.2.4"
+  }
+}

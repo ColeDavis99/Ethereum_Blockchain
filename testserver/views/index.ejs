@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+    <style>
+      html{
+        background-color: rgba(105, 205, 130, 0.90);
+      }
+
+      center{
+        margin-top: 200px;
+      }
+
+      #valueToAdd{
+        font-weight: bold;
+      }
+
+      #valueToAddDiv{
+        margin-top: 100px;
+        text-align: left;
+      }
+
+      #mostRecent{
+        font-weight: bold;
+      }
+
+      #recentValueDiv{
+        margin-top: 110px;
+        width:100%;
+      }
+
+      #valueToAddList{
+        text-align: left;
+        margin: 0 auto;
+        width:100%;
+      }
+
+      #eventRangeDiv{
+        margin-top: 120px;
+      }
+    </style>
+</head>
+<body>
+
+
+
+
+<!--I'm injecting JS into the .ejs tags so I am able to have the backend data from a text file accessable in JS ( so I can then send the JS variable to the blockchain)-->
+<% if (data) { %>
+
+
+
+    <div id="addAdminDiv">
+      <h2>Add admin to admin list on blockchain (done once)</h2>
+      <input id="addAdmin" type="button" onclick="initAdminList()" value="Add admin (LinuxID for cole = 1000)" />
+    </div>
+
+
+    <div id="valueToAddDiv">
+      <h2>Data To Insert Into Blockchain</h2>
+      <input id="addEvent" type="button" onclick="setValue()" value="Add event to blockchain" />
+
+      <p id="valueToAdd"></p>
+      <div id="valueToAddList">
+
+      </div>
+    </div>
+
+
+    <div id="recentValueDiv">
+      <h2>Most Recent Data From Blockchain</h2>
+      <input id="recentValue" type="button" onclick="getValue()" value="Update Data View" />
+      <input id = "dataHelper" type="hidden" size="32" value="<%= data %>" /> <!-- Ugly hotfix for ampersand encoding problem (This html input field holds the value temporarily) -->
+      <p id="mostRecent"> </p>
+      <div id="recentValueList">
+
+      </div>
+    </div>
+
+
+    <div id="eventRangeDiv">
+      <h2>View events between a range (Unix Epoch Time)</h2>
+      <input id="eventRangeBtn" type="button" onclick="getEventsBetween()" value="Retrieve Events" />
+      <input id = "startDate" type="text" size="24" value="0" />
+      <input id = "endDate" type="text" size="24" value="1580604217" />
+      <div id="eventRangeList">
+
+      </div>
+    </div>
+
+
+     <script>
+     //Here's the ABI and address of our smartcontract
+     CONTRACTADDRESS = '0x79b083DD2865fD60f386D996c0cFCAAdB2144CCd';
+
+     ABI =
+     [
+    	{
+    		"constant": false,
+    		"inputs": [
+    			{
+    				"name": "adminName",
+    				"type": "address"
+    			},
+    			{
+    				"name": "linuxUID",
+    				"type": "uint256"
+    			}
+    		],
+    		"name": "addAdmin",
+    		"outputs": [],
+    		"payable": false,
+    		"stateMutability": "nonpayable",
+    		"type": "function"
+    	},
+    	{
+    		"constant": false,
+    		"inputs": [
+    			{
+    				"name": "eventString",
+    				"type": "string"
+    			},
+    			{
+    				"name": "linuxID",
+    				"type": "uint256"
+    			},
+    			{
+    				"name": "date",
+    				"type": "uint256"
+    			}
+    		],
+    		"name": "addEvent",
+    		"outputs": [],
+    		"payable": false,
+    		"stateMutability": "nonpayable",
+    		"type": "function"
+    	},
+    	{
+    		"constant": false,
+    		"inputs": [
+    			{
+    				"name": "startDate",
+    				"type": "uint256"
+    			},
+    			{
+    				"name": "endDate",
+    				"type": "uint256"
+    			}
+    		],
+    		"name": "triggerEventsBetween",
+    		"outputs": [
+    			{
+    				"name": "",
+    				"type": "string"
+    			}
+    		],
+    		"payable": false,
+    		"stateMutability": "nonpayable",
+    		"type": "function"
+    	},
+    	{
+    		"constant": true,
+    		"inputs": [
+    			{
+    				"name": "",
+    				"type": "address"
+    			}
+    		],
+    		"name": "Admins",
+    		"outputs": [
+    			{
+    				"name": "",
+    				"type": "uint256"
+    			}
+    		],
+    		"payable": false,
+    		"stateMutability": "view",
+    		"type": "function"
+    	},
+    	{
+    		"constant": true,
+    		"inputs": [
+    			{
+    				"name": "",
+    				"type": "uint256"
+    			}
+    		],
+    		"name": "EventLog",
+    		"outputs": [
+    			{
+    				"name": "eventString",
+    				"type": "string"
+    			},
+    			{
+    				"name": "date",
+    				"type": "uint256"
+    			}
+    		],
+    		"payable": false,
+    		"stateMutability": "view",
+    		"type": "function"
+    	},
+    	{
+    		"constant": true,
+    		"inputs": [],
+    		"name": "getEvent",
+    		"outputs": [
+    			{
+    				"name": "",
+    				"type": "string"
+    			}
+    		],
+    		"payable": false,
+    		"stateMutability": "view",
+    		"type": "function"
+    	}
+    ]
+
+     /*==================================================================
+ 			Make sure webpage can connect properly to metamask wallet
+ 		=====================================================================*/
+  		function metamaskAuthenticate(){
+  			window.addEventListener('load', async () =>
+  			{
+  				// Modern dapp browsers...
+  				if (window.ethereum)
+  				{
+  				    window.web3 = new Web3(ethereum);
+  				try
+  				{
+  				    // Request account access if needed
+  				    await ethereum.enable();
+  				    // Acccounts now exposed
+  				    web3.eth.sendTransaction({/* ... */});
+  				}
+  				catch (error)
+  				{
+  				    console.log("User denied account access...");
+  				}
+  			}
+
+				// Legacy dapp browsers...
+				else if (window.web3)
+				{
+					window.web3 = new Web3(web3.currentProvider);
+					// Acccounts always exposed
+					web3.eth.sendTransaction({/* ... */});
+				}
+
+				// Non-dapp browsers...
+				else
+				{
+					console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
+				}
+			});
+		  }
+
+      //Pretty list generation for "Data to Insert Into Blockchain" section
+      function renderEventToAdd(){
+        //Re-grab the new info from the hidden input box
+        auditInfo = document.getElementById("dataHelper").value;
+
+        //Hotfix for parsing and solidity stuff
+        auditInfo = auditInfo + "@@@";
+
+        //Generate pretty list
+        auditInfo = auditInfo.replace(/,/g, ' ')
+        auditInfo = auditInfo.replace(/@@@/g, ',')
+        document.getElementById("valueToAdd").innerHTML = auditInfo;
+
+        prettyAuditInfo = auditInfo.split(",");
+        document.getElementById("valueToAddList").innerHTML = ""; //clear
+        for(var i=0; i<prettyAuditInfo.length; i++)
+        {
+          document.getElementById("valueToAddList").innerHTML += prettyAuditInfo[i];
+          document.getElementById("valueToAddList").innerHTML += "<br />";
+        }
+      }
+
+
+      //Pretty list generation for "View dates between a range" section
+      function renderEventsRetrieved(eventsBetweenResult)
+      {
+        var eventArray = eventsBetweenResult.split("@@@");
+
+        document.getElementById("eventRangeList").innerHTML = ""; //clear
+        for(var i=0; i<eventArray.length-1; i++)
+        {
+          document.getElementById("eventRangeList").innerHTML += "#";
+          document.getElementById("eventRangeList").innerHTML += i+1;
+          document.getElementById("eventRangeList").innerHTML += ")  ";
+          document.getElementById("eventRangeList").innerHTML += eventArray[i];
+          document.getElementById("eventRangeList").innerHTML += "<br />";
+        }
+      }
+
+      /*================================
+  			GET MOST RECENT VALUE ADDED
+  		==================================*/
+  		function getValue()
+      {
+  			try {
+  				// contract Abi defines all the variables,constants and functions of the smart contract. replace with your own abi
+
+  				//instantiate and connect to contract address via Abi
+  				var myAbi = web3.eth.contract(ABI);
+
+  				var myfunction = myAbi.at(CONTRACTADDRESS);
+
+  				//call the get function of our SimpleStorage contract
+  				myfunction.getEvent.call(function (err, xname) {
+  					if (err) { console.log("getEvent() error: " + err) }
+  					if (xname) {
+  					    document.getElementById("mostRecent").innerHTML = "" + xname;
+  					}
+
+            //Generate pretty list
+            var xnamePretty = xname.split(",");
+            document.getElementById("recentValueList").innerHTML = ""; //clear
+            for(var i=0; i<xnamePretty.length; i++)
+            {
+              document.getElementById("recentValueList").innerHTML += xnamePretty[i];
+              document.getElementById("recentValueList").innerHTML += "<br />";
+            }
+  				});
+  			}
+  			catch (err) {
+  				alert("getEvent() error: ", err);
+  			}
+  		}
+
+
+      /*============================
+        ADD VAL TO BLOCKCHAIN
+      =============================*/
+      function setValue() {
+      try
+      {
+        //instantiate and connect to contract address via Abi
+        var myAbi = web3.eth.contract(ABI);
+        var myfunction = myAbi.at(CONTRACTADDRESS);
+
+
+        //Should equal 1000 if "cole" made the change.
+        var linuxUserID = prettyAuditInfo[3];
+        //linuxUserID = 999; //Can also change this value in example.txt (represents a user trying to be an admin)
+
+        myfunction.addEvent( auditInfo, linuxUserID, prettyAuditInfo[2],{ from: web3.eth.accounts[0], gas: 4000000 }, function (error, result) {
+          if (!error) {
+            console.log("addEvent result: ", result);
+            //alert("addEvent NO error " + auditInfo);
+          }
+          else {
+            console.log("addEvent error: ", error);
+            //alert("addEvent error");
+          }
+        })
+      } catch (err) {
+        document.getElementById("xvalue").innerHTML = err;
+      }
+      }
+
+
+
+      /*====================================
+        Return All Events Between Two Dates
+      =====================================*/
+  		function getEventsBetween()
+      {
+  			try
+  			{
+  				//instantiate and connect to contract address via Abi
+  				var myAbi = web3.eth.contract(ABI);
+  				var myfunction = myAbi.at(CONTRACTADDRESS);
+
+          //Get user's input from GUI
+          var startDate = document.getElementById("startDate").value;
+          var endDate = document.getElementById("endDate").value;
+
+  				myfunction.triggerEventsBetween.call(startDate,endDate,{ from: web3.eth.accounts[0], gas: 4000000 }, function (error, eventsBetweenResult) {
+  					if (!error)
+            {
+              console.log("No getEventsBetween() error.");
+
+              //Generate a pretty list
+              renderEventsRetrieved(eventsBetweenResult);
+  					}
+  					else
+            {
+  						console.log("triggerEventsBetween() error: ", error);
+  					}
+  				})
+  			 }
+         catch (err)
+         {
+            console.log("Retrieval of events error", err);
+  			 }
+		   }
+
+
+    //I'm initializing admin list on the smartcontract with one admin with ID of 1000.
+    function initAdminList(){
+      //instantiate and connect to contract address via Abi
+      var myAbi = web3.eth.contract(ABI);
+      var myfunction = myAbi.at(CONTRACTADDRESS);
+
+      //We're only allowing linuxUser with ID of 1000 to make changes
+      myfunction.addAdmin( "0x8A301E7a865aA016692FCe04e20a83408aeda650", 1000, { from: web3.eth.accounts[0], gas: 4000000 }, function (error, result) {
+        if (!error) {
+          console.log("addAdmin result: " + result);
+          //alert("addAdmin result: " + result);
+        }
+        else {
+          console.log("addAdmin error: " + error);
+          //alert("addAdmin error: " +  error);
+        }
+      })
+    }
+
+		/*========================
+			    MAIN DRIVER
+		=========================*/
+		metamaskAuthenticate();
+		getValue();
+
+		//Need a little bit of delay so smart contract functionality gets set up properly.
+    auditInfo = document.getElementById("dataHelper").value; //Retrieve info from the ugly input box hotfix
+		//setTimeout(() => {  setValue(); }, 500);  //Called via button click now
+
+    renderEventToAdd();
+
+
+
+	</script>
+<% } %>
+
+
+
+    <center>
+        <!-- <div id="metamask"></div>
+        <h3>Insert and retrieve value on the blockchain</h3>
+        <br />
+        <table>
+            <tr>
+                <td></td>
+                <td>
+
+                </td>
+            </tr>
+            <tr>
+                <td>Insert a new value :</td>
+                <td>
+                    <input id="xvalue" type="text" />
+                    <input id="Button1" type="button" onclick="setValue()" value="Add to Blockchain" />
+                </td>
+            </tr>
+        </table> -->
+    </center>
+</body>
+</html>
