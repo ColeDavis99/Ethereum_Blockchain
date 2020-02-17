@@ -1,0 +1,2 @@
+auditctl -l produced:
+-w /home/cole/Desktop/BLOCKCHAIN/watch_dir -p w -k watch_key
