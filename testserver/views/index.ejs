@@ -53,13 +53,13 @@
 
 
     <div id="addAdminDiv">
-      <h2>Add admin to admin list on blockchain (done once)</h2>
-      <input id="addAdmin" type="button" onclick="initAdminList()" value="Add admin (LinuxID for cole = 1000)" />
+      <h2>Upload Access Control List To Blockchain</h2>
+      <input id="addAdmin" type="button" onclick="initAdminList()" value="Deploy Access Control List" />
     </div>
 
 
     <div id="valueToAddDiv">
-      <h2>Data To Insert Into Blockchain</h2>
+      <h2>Insert Event Into Blockchain</h2>
       <input id="addEvent" type="button" onclick="setValue()" value="Add event to blockchain" />
 
       <p id="valueToAdd"></p>
@@ -70,7 +70,7 @@
 
 
     <div id="recentValueDiv">
-      <h2>Most Recent Data From Blockchain</h2>
+      <h2>Most Recent Event Added To Blockchain</h2>
       <input id="recentValue" type="button" onclick="getValue()" value="Update Data View" />
       <input id = "dataHelper" type="hidden" size="32" value="<%= data %>" /> <!-- Ugly hotfix for ampersand encoding problem (This html input field holds the value temporarily) -->
       <p id="mostRecent"> </p>
@@ -84,7 +84,7 @@
       <h2>View events between a range (Unix Epoch Time)</h2>
       <input id="eventRangeBtn" type="button" onclick="getEventsBetween()" value="Retrieve Events" />
       <input id = "startDate" type="text" size="24" value="0" />
-      <input id = "endDate" type="text" size="24" value="1580604217" />
+      <input id = "endDate" type="text" size="24" value="1681318021185137563" />
       <div id="eventRangeList">
 
       </div>
@@ -93,7 +93,7 @@
 
      <script>
      //Here's the ABI and address of our smartcontract
-     CONTRACTADDRESS = '0x79b083DD2865fD60f386D996c0cFCAAdB2144CCd';
+     CONTRACTADDRESS = '0x90fF1dc9Ea383042069Ee5dc465F59978e423129';
 
      ABI =
      [
@@ -406,7 +406,8 @@
       var myAbi = web3.eth.contract(ABI);
       var myfunction = myAbi.at(CONTRACTADDRESS);
 
-      //We're only allowing linuxUser with ID of 1000 to make changes
+      //We're only allowing linuxUser with ID of 1000 to make valid changes
+      //Also, that address is the Firefox's Etherium public address
       myfunction.addAdmin( "0x8A301E7a865aA016692FCe04e20a83408aeda650", 1000, { from: web3.eth.accounts[0], gas: 4000000 }, function (error, result) {
         if (!error) {
           console.log("addAdmin result: " + result);

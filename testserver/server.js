@@ -32,13 +32,13 @@ app.get('/getData', function (req, res) {
 
 
 /*============================================================
-	Here, I read in a file with one line into an array. 
+	Here, I read in a file with one line into an array.
 	The values are space delimited.
 =============================================================*/
 
 function readAuditLog()
 {
-  rawdata = fs.readFileSync('example.txt', 'utf8');
+  rawdata = fs.readFileSync('events/example.txt', 'utf8');
   auditInfo = rawdata.split(" ");
 }
 
